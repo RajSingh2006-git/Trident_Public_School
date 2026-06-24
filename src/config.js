@@ -4,7 +4,7 @@ export const CONFIG = {
   // 1. Visit https://web3forms.com
   // 2. Enter your email (rajsing9576@gmail.com) to get a free Access Key
   // 3. Paste your Access Key below:
-  WEB3FORMS_ACCESS_KEY: "YOUR_ACCESS_KEY_HERE",
+  WEB3FORMS_ACCESS_KEY: "e19be875-2794-429d-9b85-81a6c80ee0ea",
 
   // School contact parameters
   CONTACT_EMAIL: "rajsing9576@gmail.com",
