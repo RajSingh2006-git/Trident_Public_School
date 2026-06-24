@@ -66,12 +66,88 @@ export default function Admissions() {
     }));
   };
 
+  // State to track if local admissions exist for exporter
+  const [hasSubmissions, setHasSubmissions] = useState(!!localStorage.getItem('trident_admissions'));
+
+  const generateAndDownloadCSV = (entry) => {
+    // 1. Save entry to localStorage list
+    const saved = localStorage.getItem('trident_admissions');
+    const list = saved ? JSON.parse(saved) : [];
+    list.push(entry);
+    localStorage.setItem('trident_admissions', JSON.stringify(list));
+    setHasSubmissions(true);
+
+    // 2. Format CSV values
+    const headers = ["Student Name", "DOB", "Gender", "Class Applied", "Parent Name", "Parent Occupation", "Phone", "Email", "Address"];
+    const row = [
+      entry.studentName,
+      entry.dob,
+      entry.gender,
+      entry.classApplied,
+      entry.parentName,
+      entry.parentOccupation,
+      entry.phone,
+      entry.email,
+      `"${entry.address.replace(/"/g, '""')}"`
+    ];
+    const csvContent = [headers.join(","), row.join(",")].join("\n");
+
+    // 3. Trigger Browser Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${entry.studentName.replace(/\s+/g, '_')}_admission_entry.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Return raw CSV row string for email representation
+    return row.join(", ");
+  };
+
+  const downloadCumulativeCSV = () => {
+    const saved = localStorage.getItem('trident_admissions');
+    if (!saved) {
+      alert("No admissions entries found in this browser.");
+      return;
+    }
+    const list = JSON.parse(saved);
+    const headers = ["Student Name", "DOB", "Gender", "Class Applied", "Parent Name", "Parent Occupation", "Phone", "Email", "Address"];
+    const rows = list.map(entry => [
+      entry.studentName,
+      entry.dob,
+      entry.gender,
+      entry.classApplied,
+      entry.parentName,
+      entry.parentOccupation,
+      entry.phone,
+      entry.email,
+      `"${entry.address.replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `trident_admissions_cumulative.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep(3)) return;
 
+    // Generate CSV local files and get row text
+    const csvRowText = generateAndDownloadCSV(formData);
+
     if (CONFIG.WEB3FORMS_ACCESS_KEY === 'YOUR_ACCESS_KEY_HERE') {
-      alert("Verification Notice:\nTo receive these form submissions in your Gmail (rajsing9576@gmail.com), please get a free Access Key from Web3Forms (https://web3forms.com) and paste it into 'src/config.js'.\n\nI will simulate successful submission for now!");
+      alert("Verification Notice:\nTo receive these form submissions in your Gmail (rajsing9576@gmail.com), please get a free Access Key from Web3Forms (https://web3forms.com) and paste it into 'src/config.js'.\n\nI have saved this entry locally and downloaded your CSV file!");
       setFormSubmitted(true);
       setFormStep(1);
       return;
@@ -98,7 +174,8 @@ export default function Admissions() {
           parent_occupation: formData.parentOccupation,
           phone: formData.phone,
           email: formData.email,
-          address: formData.address
+          address: formData.address,
+          CSV_Format_Entry: csvRowText
         })
       });
 
@@ -129,6 +206,16 @@ export default function Admissions() {
         <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-base font-semibold">
           Check eligibility, explore fee details, and apply online in minutes.
         </p>
+        {hasSubmissions && (
+          <div className="pt-2">
+            <button
+              onClick={downloadCumulativeCSV}
+              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-xs shadow-sm cursor-pointer inline-flex items-center space-x-1.5 transition-all duration-200"
+            >
+              <span>📊 Download Cumulative CSV (Admin)</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Grid: Process and Age Table */}
